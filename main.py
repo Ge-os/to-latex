@@ -21,11 +21,26 @@ class GeminiLatexConverter:
         self.rpm_limit = 30
         self.request_count = 0
         self.max_context_length = 4000
+        self.prompt_template = None
+        self.log_callback = None
+        self.progress_callback = None
+
+    def set_gui_callbacks(self, log_callback, progress_callback):
+        self.log_callback = log_callback
+        self.progress_callback = progress_callback
+
+    def get_page_count(self, source, source_type):
+        if source_type == 'pdf':
+            doc = fitz.open(source)
+            return len(doc)
+        else:
+            return len(self.process_directory(source))
 
     def clean_latex_output(self, text):
         """Очистка сгенерированного LaTeX от артефактов"""
         # Удаление markdown code blocks
         text = re.sub(r'```latex?\s*', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'```\s*', '', text)
         text = re.sub(r'```\s*', '', text)
         
         # Удаление HTML-подобных тегов
@@ -49,19 +64,38 @@ class GeminiLatexConverter:
         #     text = re.sub(pattern, replacement, text)
         
         # Удаление ошибочных заголовков
-        text = re.sub(
-            r'\\usepackage{*?\\documentclass.*?\\begin{document}?\\end{document}?begin{document}?end{document}?documentclass.*?usepackage{*',
-            '',
-            text,
-            flags=re.DOTALL
-        )
+        patterns = [
+            r'\\begin{document}',
+            r'\\documentclass{*}',
+            r'\\begin{document}',
+            r'\\end{document}',
+            r'\\usepackage{*}',
+            r'\\title{*}', 
+            r'\\author{*}', 
+            r'\\date{*}',
+            r'\\maketitle',
+            r'begin{document}',
+            r'documentclass{*}',
+            r'begin{document}',
+            r'end{document}',
+            r'usepackage{*}',
+            r'title{*}', 
+            r'author{*}', 
+            r'date{*}',
+            r'maketitle'
+        ]
+        for pattern in patterns:
+            text = re.sub(
+                pattern,
+                '',
+                text
+            )
         
         # Удаление случайных подписей картинок
         text = re.sub(
             r'\\begin{figure}.*?\\end{figure}',
             '',
-            text,
-            flags=re.DOTALL
+            text
         )
         
         # Удаление пустых окружений
@@ -99,24 +133,25 @@ class GeminiLatexConverter:
             try:
                 images.append(Image.open(img_path))
             except Exception as e:
-                print(f"Ошибка загрузки {img_path}: {e}")
+                self.log_callback(f"Ошибка загрузки {img_path}: {e}")
         
         return images
 
     def process_image(self, image, previous_response=None, retries=3):
         """Process single image with Gemini API"""
         contents = []
+        prompt_addition = self.prompt_template or ""
         prompt = ("Преобразуйте это изображение в LaTeX, сохраняя таблицы (используя tabularx), "
                   "формулы (в окружении equation) и структуру с сохранением "
                   "структуры и заголовками (кроме begin{document} и end{document})."
-                  "** символ форматирования не поддерживается.")
+                  "** символ форматирования не поддерживается.") + prompt_addition
         
         if previous_response:
             prompt = ("Продолжите перевод в LaTeX данной картинки, сохраняя таблицы (используя tabularx), "
                       "формулы (в окружении equation) и структуру для этого изображения, "
                       f"учитывая предыдущий контекст:\n{previous_response}\n"
                       "Сохраняйте структуру и заголовки (кроме begin{document} и end{document}). "
-                      "** символ форматирования не поддерживается.")
+                      "** символ форматирования не поддерживается.") + prompt_addition
         
         contents.append(prompt)
         contents.append(image)
@@ -138,7 +173,7 @@ class GeminiLatexConverter:
                 self.request_count += 1
                 return cleaned_text
             except Exception as e:
-                print(f"Ошибка: {e}. Повторная попытка...")
+                self.log_callback(f"Ошибка: {e}. Повторная попытка...")
                 time.sleep(2)
         return None
 
@@ -149,7 +184,7 @@ class GeminiLatexConverter:
         previous_response = None
         
         for idx, image in enumerate(images):
-            print(f"Обработка страницы {idx+1}/{len(images)}...")
+            self.log_callback(f"Обработка страницы {idx+1}/{len(images)}...")
             response_text = self.process_image(image, previous_response)
             
             if response_text:
@@ -191,7 +226,7 @@ class GeminiLatexConverter:
         previous_response = None
         
         for idx, image in enumerate(images):
-            print(f"Обработка страницы {idx+1}/{len(images)}...")
+            self.log_callback(f"Обработка страницы {idx+1}/{len(images)}...")
             response_text = self.process_image(image, previous_response)
             
             if response_text:
@@ -206,19 +241,10 @@ class GeminiLatexConverter:
                     import gc
                     gc.collect()
             else:
-                print(f"Ошибка обработки страницы {idx+1}")
+                self.log_callback(f"Ошибка обработки страницы {idx+1}")
 
             # Базовый контроль RPM
             time.sleep(60 / self.rpm_limit + 0.5)
 
         self._finalize_output()
-        print(f"LaTeX документ сохранен в {self.output_tex}")
-# Пример использования
-if __name__ == "__main__":
-    converter = GeminiLatexConverter(api_key="")
-    
-    # Для PDF файла:
-    converter.convert_to_latex("input.pdf", source_type='pdf')
-    
-    # Для директории с изображениями:
-    # converter.convert_to_latex(os.path.join(os.getcwd(), "images"), source_type='directory')
+        self.log_callback(f"LaTeX документ сохранен в {self.output_tex}")
