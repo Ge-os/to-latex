@@ -215,7 +215,7 @@ class GeminiLatexConverter:
         print(f"LaTeX документ сохранен в {self.output_tex}")
 # Пример использования
 if __name__ == "__main__":
-    converter = GeminiLatexConverter(api_key="AIzaSyAYf80IwompkZPlEeWnOWYn3Fd8BaifSpw")
+    converter = GeminiLatexConverter(api_key="")
     
     # Для PDF файла:
     converter.convert_to_latex("input.pdf", source_type='pdf')
