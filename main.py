@@ -39,7 +39,6 @@ class GeminiLatexConverter:
         # Удаление markdown code blocks
         text = re.sub(r'```latex?\s*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'```\s*', '', text)
-        text = re.sub(r'```\s*', '', text)
         
         # Удаление HTML-подобных тегов
         text = re.sub(r'<.*?>', '', text)
@@ -47,47 +46,22 @@ class GeminiLatexConverter:
         # Удаление повторяющихся пустых строк
         text = re.sub(r'\n{3,}', '\n\n', text)
         
-        # # Фикс некорректных спецсимволов
-        # replacements = {
-        #     r'\\%': '%',
-        #     r'\\_': '_',
-        #     r'\\#': '#',
-        #     r'\\&': '&',
-        #     r'\\$': '$',
-        #     r'\\~': '~',
-        #     r'\\^': '^'
-        # }
-        
-        # for pattern, replacement in replacements.items():
-        #     text = re.sub(pattern, replacement, text)
-        
-        # Удаление ошибочных заголовков
         patterns = [
-            r'\\begin{document}',
-            r'\\documentclass{*}',
-            r'\\begin{document}',
-            r'\\end{document}',
-            r'\\usepackage{*}',
-            r'\\title{*}', 
-            r'\\author{*}', 
-            r'\\date{*}',
-            r'\\maketitle',
-            r'begin{document}',
-            r'documentclass{*}',
-            r'begin{document}',
-            r'end{document}',
-            r'usepackage{*}',
-            r'title{*}', 
-            r'author{*}', 
-            r'date{*}',
-            r'maketitle'
+            r'.begin{document}',
+            r'.documentclass*',
+            r'.begin{document}',
+            r'.end{document}',
+            r'.usepackage*',
+            r'.title*', 
+            r'.author*', 
+            r'.date*',
+            r'.maketitle',
+            r'.begin*',
+            r'.begin.document.',
+            r'.end.document.'
         ]
         for pattern in patterns:
-            text = re.sub(
-                pattern,
-                '',
-                text
-            )
+            text = re.sub(pattern, '', text)
         
         # Удаление случайных подписей картинок
         text = re.sub(
@@ -145,9 +119,9 @@ class GeminiLatexConverter:
                   "** символ форматирования не поддерживается.") + prompt_addition
         
         if previous_response:
-            prompt = ("Продолжите перевод в LaTeX данной картинки, сохраняя таблицы (используя tabularx), "
-                      "формулы (в окружении equation) и структуру для этого изображения, "
-                      f"учитывая предыдущий контекст:\n{previous_response}\n"
+            prompt = ("Продолжите перевод в LaTeX данной картинки (отправлять повторно предыдущий контекст НЕ НУЖНО),"
+                      " сохраняя таблицы (используя tabularx), формулы (в окружении equation) и структуру для "
+                      f"этого изображения, учитывая предыдущий контекст:\n{previous_response}\n"
                       "Сохраняйте структуру и заголовки (кроме begin{document} и end{document}). "
                       "** символ форматирования не поддерживается.") + prompt_addition
         
