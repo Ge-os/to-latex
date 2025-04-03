@@ -23,11 +23,9 @@ class GeminiLatexConverter:
         self.max_context_length = 4000
         self.prompt_template = None
         self.log_callback = None
-        self.progress_callback = None
 
-    def set_gui_callbacks(self, log_callback, progress_callback):
+    def set_gui_callbacks(self, log_callback):
         self.log_callback = log_callback
-        self.progress_callback = progress_callback
 
     def get_page_count(self, source, source_type):
         if source_type == 'pdf':
