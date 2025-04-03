@@ -34,23 +34,23 @@ class GeminiLatexConverter:
         # Удаление повторяющихся пустых строк
         text = re.sub(r'\n{3,}', '\n\n', text)
         
-        # Фикс некорректных спецсимволов
-        replacements = {
-            r'\\%': '%',
-            r'\\_': '_',
-            r'\\#': '#',
-            r'\\&': '&',
-            r'\\$': '$',
-            r'\\~': '~',
-            r'\\^': '^'
-        }
+        # # Фикс некорректных спецсимволов
+        # replacements = {
+        #     r'\\%': '%',
+        #     r'\\_': '_',
+        #     r'\\#': '#',
+        #     r'\\&': '&',
+        #     r'\\$': '$',
+        #     r'\\~': '~',
+        #     r'\\^': '^'
+        # }
         
-        for pattern, replacement in replacements.items():
-            text = re.sub(pattern, replacement, text)
+        # for pattern, replacement in replacements.items():
+        #     text = re.sub(pattern, replacement, text)
         
         # Удаление ошибочных заголовков
         text = re.sub(
-            r'\\documentclass.*?\\begin{document}?\\end{document}',
+            r'\\usepackage{*?\\documentclass.*?\\begin{document}?\\end{document}?begin{document}?end{document}?documentclass.*?usepackage{*',
             '',
             text,
             flags=re.DOTALL
@@ -112,7 +112,7 @@ class GeminiLatexConverter:
                   "** символ форматирования не поддерживается.")
         
         if previous_response:
-            prompt = ("Продолжите перевод LaTeX, сохраняя таблицы (используя tabularx), "
+            prompt = ("Продолжите перевод в LaTeX данной картинки, сохраняя таблицы (используя tabularx), "
                       "формулы (в окружении equation) и структуру для этого изображения, "
                       f"учитывая предыдущий контекст:\n{previous_response}\n"
                       "Сохраняйте структуру и заголовки (кроме begin{document} и end{document}). "
@@ -215,10 +215,10 @@ class GeminiLatexConverter:
         print(f"LaTeX документ сохранен в {self.output_tex}")
 # Пример использования
 if __name__ == "__main__":
-    converter = GeminiLatexConverter(api_key="")
+    converter = GeminiLatexConverter(api_key="AIzaSyAYf80IwompkZPlEeWnOWYn3Fd8BaifSpw")
     
     # Для PDF файла:
-    # converter.convert_to_latex("input.pdf", source_type='pdf')
+    converter.convert_to_latex("input.pdf", source_type='pdf')
     
     # Для директории с изображениями:
-    converter.convert_to_latex(os.path.join(os.getcwd(), "images"), source_type='directory')
+    # converter.convert_to_latex(os.path.join(os.getcwd(), "images"), source_type='directory')
